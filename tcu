@@ -1,0 +1,11 @@
+#!/bin/bash
+
+PORT=/dev/ttyUSB0
+MODULE=txm
+
+set -e
+
+arduino-cli compile --libraries lib2 -p $PORT --fqbn esp32:esp32:esp32 $MODULE
+pkill -f "minicom -D $PORT" || true
+arduino-cli upload -p $PORT --fqbn esp32:esp32:esp32 $MODULE
+gnome-terminal -t "$MODULE-$PORT" -- /bin/bash -c "minicom -D $PORT; exit"
