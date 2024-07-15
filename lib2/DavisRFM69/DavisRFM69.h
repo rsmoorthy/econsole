@@ -183,6 +183,12 @@
   #define  DEFAULT_LISTEN_IDLE_US 1000000
 #endif
 
+// By default, RSSI is read when data is also read. isr only marks _haveData to be true.
+// So data and RSSI is read only when receiveDone is true. If there is some other code running,
+// receiveDone() will be called later, but that means RSSI may be incorrect.
+// So created a separate high priority task, which will read as soon as "isr" is done (which will send
+// a notification to this RSSI_Task).
+// Later we can improvise and read the data also in this high priority task.
 #define RSSI_TASK_  1
 
 class DavisRFM69 {

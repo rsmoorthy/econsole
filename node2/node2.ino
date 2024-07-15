@@ -18,28 +18,11 @@
 
 // Include the RFM69 and SPI libraries:
 
-#include <RFM69.h>
+#include "DavisRFM69.h"
 #include <SPI.h>
 
-// Addresses for this node. CHANGE THESE FOR EACH NODE!
-
-#define NETWORKID     0   // Must be the same for all nodes
-#define MYNODEID      2   // My node ID
-#define TONODEID      1   // Destination node ID
-
-// RFM69 frequency, uncomment the frequency of your module:
-
-//#define FREQUENCY   RF69_433MHZ
-#define FREQUENCY     RF69_915MHZ
-
-// AES encryption (or not):
-
-#define ENCRYPT       false // Set to "true" to use encryption
-#define ENCRYPTKEY    "TOPSECRETPASSWRD" // Use the same 16-byte key on all nodes
-
-// Use ACKnowledge when sending messages (or not):
-
-#define USEACK        true // Request ACKs or not
+#include "common.h"
+#include "prefs.h"
 
 // Packet sent/received indicator LED (optional):
 
@@ -48,12 +31,13 @@
 
 // Create a library object for our RFM69HCW module:
 
-RFM69 radio(5, 13, true);
+DavisRFM69 radio(5, 13, true);
 
 void setup()
 {
   // Open a serial port so we can send keystrokes to the module:
 
+  delay(1000);
   Serial.begin(115200);
   Serial.print("Node ");
   Serial.print(MYNODEID,DEC);
@@ -81,6 +65,73 @@ void setup()
 
 void loop()
 {
+  static uint32_t st = 0;
+  // consoleSendRcv();
+  rxvPkt();
+  if (millis() - st > 10000) {
+    contSend();
+    st = millis();
+  }
+}
+
+/*
+int16_t rssi;
+unsigned char cnt = 0;
+uint32_t start = 0;
+uint32_t rxvd_counter = 0;
+uint32_t missed_counter = 0;
+void contSend()
+{
+  static unsigned char buf[8] = { cnt, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22 };
+  buf[0] = cnt;
+  if (radio.sendWithRetry(TONODEID, buf, 8)) {
+    Serial.print("ACK received for "); Serial.print(cnt); 
+    Serial.print(" rxvd/missed: "); Serial.print(rxvd_counter); Serial.print("/"); Serial.print(missed_counter);
+    Serial.print(" last rssi:"); Serial.println(rssi);
+    rxvd_counter++;
+  }
+  else {
+    Serial.print("ACK NOT received for "); Serial.print(cnt); 
+    Serial.print(" rxvd/missed: "); Serial.print(rxvd_counter); Serial.print("/"); Serial.print(missed_counter);
+    Serial.print(" last rssi:"); Serial.println(rssi);
+    missed_counter++;
+  }
+  cnt++;
+}
+
+void rxvDone()
+{
+  if (radio.receiveDone()) // Got one!
+  {
+    rssi = radio.RSSI;
+    if (radio.ACKRequested())
+    {
+      Serial.print("received from node ");
+      Serial.print(radio.SENDERID, DEC);
+      Serial.print(" ");
+      for (byte i = 0; i < radio.DATALEN; i++) {
+        Serial.print(radio.DATA[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.print(", RSSI ");
+      Serial.println(radio.RSSI);
+      radio.sendACK();
+    }
+  }
+}
+
+void loop()
+{
+#define PKTLOOP_ 1
+#ifdef PKTLOOP_
+  rxvDone();
+  if (millis() - start > 2000) {
+    contSend();
+    start = millis();
+  }
+  delay(10);
+  return;
+#endif
   // Set up a "buffer" for characters that we'll send:
 
   static char sendbuffer[62];
@@ -116,7 +167,9 @@ void loop()
       Serial.print(", message [");
       for (byte i = 0; i < sendlength; i++)
         Serial.print(sendbuffer[i]);
-      Serial.println("]");
+      Serial.print(" -- ");
+      Serial.print(sendlength, DEC);
+      Serial.println(" ]");
 
       // There are two ways to send packets. If you want
       // acknowledgements, use sendWithRetry():
@@ -185,4 +238,4 @@ void Blink(byte PIN, int DELAY_MS)
   delay(DELAY_MS);
   digitalWrite(PIN,LOW);
 }
-
+*/
