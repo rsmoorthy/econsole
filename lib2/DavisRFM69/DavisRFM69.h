@@ -23,8 +23,8 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#ifndef RFM69_h
-#define RFM69_h
+#ifndef DAVISRFM69_h
+#define DAVISRFM69_h
 #include <Arduino.h>            // assumes Arduino IDE v1.0 or greater
 #include <SPI.h>
 
@@ -183,7 +183,9 @@
   #define  DEFAULT_LISTEN_IDLE_US 1000000
 #endif
 
-class RFM69 {
+#define RSSI_TASK_  1
+
+class DavisRFM69 {
   public:
     static uint8_t DATA[RF69_MAX_DATA_LEN+1]; // RX/TX payload buffer, including end of string NULL char
     static uint8_t DATALEN;
@@ -193,12 +195,13 @@ class RFM69 {
     static uint8_t ACK_REQUESTED;
     static uint8_t ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
     static int16_t RSSI; // most accurate RSSI during reception (closest to the reception). RSSI of last packet.
+    static int16_t RSSI2;          // most accurate RSSI during reception (immediately after ISR)
     static uint8_t _mode; // should be protected?
 
-    RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum __attribute__((unused))) //interruptNum is now deprecated
-                : RFM69(slaveSelectPin, interruptPin, isRFM69HW){};
+    DavisRFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum __attribute__((unused))) //interruptNum is now deprecated
+                : DavisRFM69(slaveSelectPin, interruptPin, isRFM69HW){};
 
-    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW_HCW=false, SPIClass *spi=nullptr);
+    DavisRFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW_HCW=false, SPIClass *spi=nullptr);
 
     bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
     void setAddress(uint16_t addr);
@@ -248,7 +251,9 @@ class RFM69 {
     void interruptHandler();
     virtual void interruptHook(uint8_t CTLbyte __attribute__((unused))) {};
     static volatile bool _haveData;
-    static RFM69 *_instance;
+    static DavisRFM69 *_instance;
+    static TaskHandle_t task1;
+    static void readRSSITask(void *pvParameters);
     virtual void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
 
     // for ListenMode sleep/timer
@@ -278,7 +283,7 @@ class RFM69 {
     //virtual void unselect();
 
 #if defined(RF69_LISTENMODE_ENABLE)
-  static RFM69* selfPointer;
+  static DavisRFM69* selfPointer;
   //=============================================================================
   //                     ListenMode specific declarations  
   //=============================================================================
