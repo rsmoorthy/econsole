@@ -10,5 +10,7 @@ void consoleSendRcv(void);
 void contSend(bool ack);
 void rxvPkt(void);
 void mydelay(int);
+void sendPkt(void);
+void hopTimer(void);
 
 #endif

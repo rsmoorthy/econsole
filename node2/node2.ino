@@ -39,6 +39,8 @@ void setup()
 
   delay(5000);
   Serial.begin(115200);
+  while(!Serial) delay(10);
+  Serial.println("eConsole Version: 0.2");
   Serial.print("Node ");
   Serial.print(MYNODEID,DEC);
   Serial.println(" ready");  
@@ -57,6 +59,7 @@ void setup()
   radio.initialize(FREQUENCY, MYNODEID, NETWORKID);
   radio.setHighPower(); // Always use this for RFM69HCW
   // Serial.print("RFM69 chip version: "); Serial.println(radio.chipVersion, HEX);
+  radio.setChannel(0);
 
   // Turn on encryption if desired:
 

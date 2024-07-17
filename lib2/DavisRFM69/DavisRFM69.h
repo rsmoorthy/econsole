@@ -205,7 +205,7 @@ class DavisRFM69 {
     static int16_t RSSI2;          // most accurate RSSI during reception (immediately after ISR)
     static uint8_t _mode; // should be protected?
     static uint8_t chipVersion;
-    static uint8_t _channel;
+    static uint8_t channel;
 
     DavisRFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum __attribute__((unused))) //interruptNum is now deprecated
                 : DavisRFM69(slaveSelectPin, interruptPin, isRFM69HW){};

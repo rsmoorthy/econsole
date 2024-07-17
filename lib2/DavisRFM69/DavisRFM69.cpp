@@ -41,7 +41,7 @@ TaskHandle_t DavisRFM69::task1;
 uint8_t DavisRFM69::chipVersion;
 volatile bool DavisRFM69::_haveData;
 DavisRFM69 *DavisRFM69::_instance = nullptr;
-uint8_t DavisRFM69::_channel = 0;                            // actual channel
+uint8_t DavisRFM69::channel = 0;                            // actual channel
 
 DavisRFM69::DavisRFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW_HCW, SPIClass *spi) {
   _instance = this;
@@ -1671,12 +1671,12 @@ uint16_t DavisRFM69::crc16(void) {
  * Set Channel 
  * - and activate receiver
  ************************************************************/
-void DavisRFM69::setChannel(byte channel) {
-  _channel = channel;
-  if (_channel > DAVIS_FREQ_TABLE_LENGTH - 1) _channel = 0;
-  writeReg(REG_FRFMSB, pgm_read_byte(&FRF[_channel][0]));
-  writeReg(REG_FRFMID, pgm_read_byte(&FRF[_channel][1]));
-  writeReg(REG_FRFLSB, pgm_read_byte(&FRF[_channel][2]));
+void DavisRFM69::setChannel(byte _channel) {
+  channel = _channel;
+  if (channel > DAVIS_FREQ_TABLE_LENGTH - 1) channel = 0;
+  writeReg(REG_FRFMSB, pgm_read_byte(&FRF[channel][0]));
+  writeReg(REG_FRFMID, pgm_read_byte(&FRF[channel][1]));
+  writeReg(REG_FRFLSB, pgm_read_byte(&FRF[channel][2]));
   receiveBegin();
 }
 
@@ -1685,7 +1685,7 @@ void DavisRFM69::setChannel(byte channel) {
  * Hop to next Channel and activate receiver 
  ************************************************************/
 void DavisRFM69::hop(void) {
-  setChannel(++_channel);
+  setChannel(++channel);
 }
 
 
