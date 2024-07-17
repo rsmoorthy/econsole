@@ -2,7 +2,7 @@
 
 #define PREFS_H_ 1
 
-#define NETWORKID     0   // Must be the same for all nodes
+#define NETWORKID     0x89   // Must be the same for all nodes
 #define MYNODEID      1   // My node ID
 #define TONODEID      2   // Destination node ID
 
@@ -18,7 +18,10 @@
 
 // Use ACKnowledge when sending messages (or not):
 
-#define USEACK        true // Request ACKs or not
+#define USEACK        false // Request ACKs or not
+
+#define CONSOLE_DRIVEN_  1
+
                            
 #endif
 

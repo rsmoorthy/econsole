@@ -144,7 +144,6 @@
   #define RF69_IRQ_PIN          2
 #endif
 
-#define DAVIS_PACKET_LEN      8 // 8 // ISS has fixed packet lengths of eight bytes, including CRC
 #define RF69_MAX_DATA_LEN       61 // to take advantage of the built in AES/CRC we want to limit the frame size to the internal FIFO size (66 bytes - 3 bytes overhead - 2 bytes crc)
 #define CSMA_LIMIT              -90 // upper RX signal sensitivity threshold in dBm for carrier sense access
 #define RF69_MODE_SLEEP         0 // XTAL OFF
@@ -184,12 +183,6 @@
   #define  DEFAULT_LISTEN_IDLE_US 1000000
 #endif
 
-// By default, RSSI is read when data is also read. isr only marks _haveData to be true.
-// So data and RSSI is read only when receiveDone is true. If there is some other code running,
-// receiveDone() will be called later, but that means RSSI may be incorrect.
-// So created a separate high priority task, which will read as soon as "isr" is done (which will send
-// a notification to this RSSI_Task).
-// Later we can improvise and read the data also in this high priority task.
 #define RSSI_TASK_  1
 
 class DavisRFM69 {
@@ -204,8 +197,6 @@ class DavisRFM69 {
     static int16_t RSSI; // most accurate RSSI during reception (closest to the reception). RSSI of last packet.
     static int16_t RSSI2;          // most accurate RSSI during reception (immediately after ISR)
     static uint8_t _mode; // should be protected?
-    static uint8_t chipVersion;
-    static uint8_t _channel;
 
     DavisRFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum __attribute__((unused))) //interruptNum is now deprecated
                 : DavisRFM69(slaveSelectPin, interruptPin, isRFM69HW){};
@@ -254,12 +245,6 @@ class DavisRFM69 {
     virtual void setMode(uint8_t mode);
     virtual void select();
     virtual void unselect();
-    byte data(byte index);
-    byte reverseBits(byte b);
-    void hop(void);
-    void setChannel(byte channel);
-    uint16_t crc16(void);
-    uint16_t compute_crc16(volatile byte *buf, byte len);
 
   protected:
     static void isr0();
@@ -347,85 +332,5 @@ class DavisRFM69 {
     uint32_t _listenCycleDurationUs;
 #endif
 };
-
-#define DAVIS_FREQS_US
-
-#ifdef DAVIS_FREQS_US
-#warning ** USING NORTH AMERICAN FREQUENCY TABLE **
-#define DAVIS_FREQ_TABLE_LENGTH 51
-static const uint8_t FRF[DAVIS_FREQ_TABLE_LENGTH][3] =
-{
-  {0xE3, 0xDA, 0x7C},
-  {0xE1, 0x98, 0x71},
-  {0xE3, 0xFA, 0x92},
-  {0xE6, 0xBD, 0x01},
-  {0xE4, 0xBB, 0x4D},
-  {0xE2, 0x99, 0x56},
-  {0xE7, 0x7D, 0xBC},
-  {0xE5, 0x9C, 0x0E},
-  {0xE3, 0x39, 0xE6},
-  {0xE6, 0x1C, 0x81},
-  {0xE4, 0x5A, 0xE8},
-  {0xE1, 0xF8, 0xD6},
-  {0xE5, 0x3B, 0xBF},
-  {0xE7, 0x1D, 0x5F},
-  {0xE3, 0x9A, 0x3C},
-  {0xE2, 0x39, 0x00},
-  {0xE4, 0xFB, 0x77},
-  {0xE6, 0x5C, 0xB2},
-  {0xE2, 0xD9, 0x90},
-  {0xE7, 0xBD, 0xEE},
-  {0xE4, 0x3A, 0xD2},
-  {0xE1, 0xD8, 0xAA},
-  {0xE5, 0x5B, 0xCD},
-  {0xE6, 0xDD, 0x34},
-  {0xE3, 0x5A, 0x0A},
-  {0xE7, 0x9D, 0xD9},
-  {0xE2, 0x79, 0x41},
-  {0xE4, 0x9B, 0x28},
-  {0xE5, 0xDC, 0x40},
-  {0xE7, 0x3D, 0x74},
-  {0xE1, 0xB8, 0x9C},
-  {0xE3, 0xBA, 0x60},
-  {0xE6, 0x7C, 0xC8},
-  {0xE4, 0xDB, 0x62},
-  {0xE2, 0xB9, 0x7A},
-  {0xE5, 0x7B, 0xE2},
-  {0xE7, 0xDE, 0x12},
-  {0xE6, 0x3C, 0x9D},
-  {0xE3, 0x19, 0xC9},
-  {0xE4, 0x1A, 0xB6},
-  {0xE5, 0xBC, 0x2B},
-  {0xE2, 0x18, 0xEB},
-  {0xE6, 0xFD, 0x42},
-  {0xE5, 0x1B, 0xA3},
-  {0xE3, 0x7A, 0x2E},
-  {0xE5, 0xFC, 0x64},
-  {0xE2, 0x59, 0x16},
-  {0xE6, 0x9C, 0xEC},
-  {0xE2, 0xF9, 0xAC},
-  {0xE4, 0x7B, 0x0C},
-  {0xE7, 0x5D, 0x98}
-};
-#elif defined (DAVIS_FREQS_EU)
-// #warning ** USING EUROPEAN FREQUENCY TABLE **
-#define DAVIS_FREQ_TABLE_LENGTH 5
-// static const uint8_t __attribute__ ((progmem)) FRF[DAVIS_FREQ_TABLE_LENGTH][3] =
-static const uint8_t FRF[DAVIS_FREQ_TABLE_LENGTH][3] =
-{
-  {0xD9, 0x04, 0x45},
-  {0xD9, 0x13, 0x04},
-  {0xD9, 0x21, 0xC2},
-  {0xD9, 0x0B, 0xA4},
-  {0xD9, 0x1A, 0x63}
-};
-#elif defined (DAVIS_FREQS_AU)
-#error ** ERROR DAVIS FREQS FOR AU ARE NOT KNOWN AT THIS TIME. ONLY US & EU DEFINED **
-#elif defined (DAVIS_FREQS_NZ)
-#error ** ERROR DAVIS FREQS FOR NZ ARE NOT KNOWN AT THIS TIME. ONLY US & EU DEFINED **
-#else
-#error ** ERROR DAVIS_FREQS MUST BE DEFINED AS ONE OF _US, _EU, _AZ, or NZ **
-#endif  // DAVIS_FREQS
-
 
 #endif

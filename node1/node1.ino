@@ -37,7 +37,7 @@ void setup()
 {
   // Open a serial port so we can send keystrokes to the module:
 
-  delay(1000);
+  delay(5000);
   Serial.begin(115200);
   Serial.print("Node ");
   Serial.print(MYNODEID,DEC);
@@ -56,6 +56,7 @@ void setup()
   // radio.setCS(10);  //uncomment this if using Pro Micro
   radio.initialize(FREQUENCY, MYNODEID, NETWORKID);
   radio.setHighPower(); // Always use this for RFM69HCW
+  // Serial.print("RFM69 chip version: "); Serial.println(radio.chipVersion, HEX);
 
   // Turn on encryption if desired:
 
@@ -66,12 +67,15 @@ void setup()
 void loop()
 {
   static uint32_t st = 0;
-  // consoleSendRcv();
+#ifdef CONSOLE_DRIVEN_
+  consoleSendRcv();
+#else
   rxvPkt();
   if (millis() - st > 500) {
-    contSend();
+    contSend(USEACK);
     st = millis();
   }
+#endif
 }
 
 /*

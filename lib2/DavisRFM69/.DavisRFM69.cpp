@@ -38,10 +38,8 @@ uint8_t DavisRFM69::ACK_RECEIVED; // should be polled immediately after sending 
 int16_t DavisRFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
 int16_t DavisRFM69::RSSI2;          // most accurate RSSI during reception (closest to the reception)
 TaskHandle_t DavisRFM69::task1;
-uint8_t DavisRFM69::chipVersion;
 volatile bool DavisRFM69::_haveData;
 DavisRFM69 *DavisRFM69::_instance = nullptr;
-uint8_t DavisRFM69::_channel = 0;                            // actual channel
 
 DavisRFM69::DavisRFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW_HCW, SPIClass *spi) {
   _instance = this;
@@ -68,12 +66,6 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
 #ifdef RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
     _interruptNum = _interruptPin;
 #endif
-
-#define DAVIS_RFM69_LIB_CONFIG_ 1
-#define DAVIS_PKT_LEN_IS_8 1    // don't forget to update DAVIS_PACKET_LEN in .h file
-#define TARGET_AND_SENDER_ID_PART_OF_DATA_ 1
-
-#ifndef DAVIS_RFM69_LIB_CONFIG_
   const uint8_t CONFIG[][2] =
   {
     /* 0x01 */ { REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY },
@@ -117,117 +109,6 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
     /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0
     {255, 0}
   };
-#else
-  const uint8_t CONFIG[][2] =
-  {
-    /* 0x01 */ { REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY },
-
-    // U8
-    /* 0x02 */ { REG_DATAMODUL, RF_DATAMODUL_DATAMODE_PACKET | RF_DATAMODUL_MODULATIONTYPE_FSK | RF_DATAMODUL_MODULATIONSHAPING_10 }, // Davis uses Gaussian shaping with BT=0.5
-    // /* 0x02 */ { REG_DATAMODUL, RF_DATAMODUL_DATAMODE_PACKET | RF_DATAMODUL_MODULATIONTYPE_FSK | RF_DATAMODUL_MODULATIONSHAPING_00 }, // no shaping
-
-    // U3
-    /* 0x03 */ { REG_BITRATEMSB, RF_BITRATEMSB_19200}, // Davis uses a datarate of 19.2 KBPS
-    /* 0x04 */ { REG_BITRATELSB, RF_BITRATELSB_19200},
-    // /* 0x03 */ { REG_BITRATEMSB, RF_BITRATEMSB_55555}, // default: 4.8 KBPS
-    // /* 0x04 */ { REG_BITRATELSB, RF_BITRATELSB_55555},
-
-    // U7
-    // /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_4800}, // Davis uses a deviation of 4.8 kHz
-    // /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_4800},
-    /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_50000}, // default: 5KHz, (FDEV + BitRate / 2 <= 500KHz)
-    /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_50000},
-    // /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_30000}, // Davis uses a deviation of 4.8 kHz
-    // /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_30000},
-
-    /* 0x07 */ { REG_FRFMSB, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFMSB_315 : (freqBand==RF69_433MHZ ? RF_FRFMSB_433 : (freqBand==RF69_868MHZ ? RF_FRFMSB_868 : RF_FRFMSB_915))) },
-    /* 0x08 */ { REG_FRFMID, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFMID_315 : (freqBand==RF69_433MHZ ? RF_FRFMID_433 : (freqBand==RF69_868MHZ ? RF_FRFMID_868 : RF_FRFMID_915))) },
-    /* 0x09 */ { REG_FRFLSB, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFLSB_315 : (freqBand==RF69_433MHZ ? RF_FRFLSB_433 : (freqBand==RF69_868MHZ ? RF_FRFLSB_868 : RF_FRFLSB_915))) },
-
-    // looks like PA1 and PA2 are not implemented on RFM69W/CW, hence the max output power is 13dBm
-    // +17dBm and +20dBm are possible on RFM69HW
-    // +13dBm formula: Pout = -18 + OutputPower (with PA0 or PA1**)
-    // +17dBm formula: Pout = -14 + OutputPower (with PA1 and PA2)**
-    // +20dBm formula: Pout = -11 + OutputPower (with PA1 and PA2)** and high power PA settings (section 3.3.7 in datasheet)
-    ///* 0x11 */ { REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | RF_PALEVEL_OUTPUTPOWER_11111},
-    ///* 0x13 */ { REG_OCP, RF_OCP_ON | RF_OCP_TRIM_95 }, // over current protection (default is 95mA)
-
-    // U12
-    // /* 0x18 */ { REG_LNA, RF_LNA_ZIN_50 | RF_LNA_GAINSELECT_AUTO }, // Not sure which is correct!
-
-    // U2
-    // RXBW defaults are { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_5} (RxBw: 10.4KHz)
-    /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, // (BitRate < 2 * RxBw)
-    // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_3 }, // Use 25 kHz BW (BitRate < 2 * RxBw)
-    // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_3 }, // Use 25 kHz BW (BitRate < 2 * RxBw)
-    //for BR-19200: /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_3 },
-    // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_4 }, // dcbo - 25.0
-
-    /* 0x1B - 0x1D These registers are for OOK.  Not used */
-
-    // 0x1F      AFC MSB
-    // 0x20      AFC LSB
-    // 0x21      FEI MSB
-    // 0x22      FEI LSB
-    // 0x23      RSSI MSB 
-    // 0x24      RSSI LSB values
-    /* 0x25 */ { REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01 }, // DIO0 is the only IRQ we're using
-    /* 0x26 */ { REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF }, // DIO5 ClkOut disable for power saving
-    // 0x27      RegIRQFlags1
-    /* 0x28 */ { REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN }, // writing to this bit ensures that the FIFO & status flags are reset
-    /* 0x29 */ { REG_RSSITHRESH, 220 }, // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
-    // 0x2a      RegRxTimeout1
-    // 0x2b      RegRxTimeout2
-    // 0x2c      RegPreambleMsb - use zero default */
-
-    // U6
-    /* 0x2d */ { REG_PREAMBLELSB, 4 }, // Davis has four preamble bytes 0xAAAAAAAA
-    // /* 0x2D */ { REG_PREAMBLELSB, RF_PREAMBLESIZE_LSB_VALUE }, // default 3 preamble bytes 0xAAAAAA
-
-    // /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0 },
-    /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0 },
-    /* 0x2f */ { REG_SYNCVALUE1, 0xcb }, // 0xcb Davis ISS first sync byte. http://madscientistlabs.blogspot.ca/2012/03/first-you-get-sugar.html
-    /* 0x30 */ { REG_SYNCVALUE2, 0x89 }, // 0x89 Davis ISS second sync byte.
-    //* 0x31 */ { REG_SYNCVALUE3, 0xAA },
-    //* 0x32 */ { REG_SYNCVALUE4, 0xBB },
-    // 0x33      REG_SYNCVALUE5 not used 
-    // 0x34      REG_SYNCVALUE6 not used 
-    // 0x35      REG_SYNCVALUE7 not used 
-    // 0x36      REG_SYNCVALUE8 not used 
-
-    // U11
-    // /* 0x37 */ { REG_PACKETCONFIG1, RF_PACKET1_FORMAT_FIXED | RF_PACKET1_DCFREE_OFF | RF_PACKET1_CRC_OFF | RF_PACKET1_CRCAUTOCLEAR_OFF | RF_PACKET1_ADRSFILTERING_OFF }, // Fixed packet length and we'll check our own CRC
-    /* 0x37 */ { REG_PACKETCONFIG1, RF_PACKET1_FORMAT_FIXED | RF_PACKET1_DCFREE_OFF | RF_PACKET1_CRC_OFF | RF_PACKET1_CRCAUTOCLEAR_OFF | RF_PACKET1_ADRSFILTERING_OFF }, // Fixed packet length and we'll check our own CRC
-
-    /* 0x38 */ { REG_PAYLOADLENGTH, DAVIS_PACKET_LEN }, // Davis sends 8 bytes of payload, including CRC that we check manually.
-    ///* 0x39 */ { REG_NODEADRS, nodeID }, // turned off because we're not using address filtering
-    // 0x3a    { REG_BROADCASTADRS, RF_BROADCASTADDRESS_VALUE }, // Not using this
-    // 0x3b      REG_AUTOMODES - Automatic modes are not used in this implementation.
-    /* 0x3c */ { REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFOTHRESH | (DAVIS_PACKET_LEN-1) }, // TX on FIFO not empty
-
-    // U1
-    /* 0x3d */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_2BITS | RF_PACKET2_AUTORXRESTART_OFF | RF_PACKET2_AES_OFF }, //RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
-    // /* 0x3D */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_NONE | RF_PACKET2_AUTORXRESTART_OFF | RF_PACKET2_AES_OFF }, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
-    // /* 0x3d */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_NONE | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, //RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
-    //for BR-19200: /* 0x3D */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_NONE | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
-
-    /* 0x3e - 0x4d  AES Key not used in this implementation */
-
-    // U13
-    // /* 0x0B */ { REG_AFCCTRL, RF_AFCCTRL_LOWBETA_OFF },
-
-    // U4 
-    // /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_2 }, // Use double the bandwidth during AFC as reception
-    // /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, // Use double the bandwidth during AFC as reception
-    // /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_3 }, // Use double -dcbo 50.0
-    // U5
-    // /* 0x1E */ { REG_AFCFEI, RF_AFCFEI_AFCAUTOCLEAR_ON | RF_AFCFEI_AFCAUTO_ON },
-    
-    /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0
-    // /* 0x71 */ { REG_TESTAFC, 0 }, // AFC Offset for low mod index systems
-    {255, 0}
-  };
-#endif
 
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
@@ -253,9 +134,6 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
 
   for (uint8_t i = 0; CONFIG[i][0] != 255; i++)
     writeReg(CONFIG[i][0], CONFIG[i][1]);
-
-  // Get version
-  chipVersion = readReg(REG_VERSION);
 
   // Encryption is persistent between resets and can trip you up during debugging.
   // Disable it during initialization so we always start from a known state.
@@ -514,47 +392,6 @@ void DavisRFM69::sendACK(const void* buffer, uint8_t bufferSize) {
   RSSI = _RSSI; // restore payload RSSI
 }
 
-#ifdef DAVIS_PKT_LEN_IS_8
-// internal function
-void DavisRFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK)
-{
-  //NOTE: overridden in RFM69_ATC!
-  setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
-  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
-  //writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
-  bufferSize = 6;
-  uint8_t tbuf[8];
-  for (uint8_t i = 1; i < bufferSize; i++)
-    tbuf[i] = ((uint8_t*) buffer)[i];
-
-#ifdef TARGET_AND_SENDER_ID_PART_OF_DATA_
-  uint8_t _toAddress, _fmAddress;
-  _toAddress = (toAddress & 0x03) << 2;
-  _fmAddress = (_address & 0x03);
-  tbuf[0] = (tbuf[0] & 0xF3) | _toAddress;
-  tbuf[0] = (tbuf[0] & 0xFC) | _fmAddress;
-#endif
-  uint16_t crc = compute_crc16((volatile uint8_t *)tbuf, 6);
-
-  // write to FIFO
-  select();
-  _spi->transfer(REG_FIFO | 0x80);
-
-  for (uint8_t i = 0; i < bufferSize; i++)
-    _spi->transfer(tbuf[i]);
-
-  _spi->transfer(crc >> 8);
-  _spi->transfer(crc & 0xff);
-  unselect();
-
-  // no need to wait for transmit mode to be ready since its handled by the radio
-  setMode(RF69_MODE_TX);
-  //uint32_t txStart = millis();
-  //while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
-  while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00); // wait for PacketSent
-  setMode(RF69_MODE_STANDBY);
-}
-#else
 // internal function
 void DavisRFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK)
 {
@@ -582,19 +419,8 @@ void DavisRFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffe
   _spi->transfer((uint8_t)_address);
   _spi->transfer(CTLbyte);
 
-#ifdef DAVIS_RFM69_LIB_CONFIG_
-  uint16_t crc = compute_crc16((volatile uint8_t *)buffer, 6);
-  bufferSize = 6;
   for (uint8_t i = 0; i < bufferSize; i++)
     _spi->transfer(((uint8_t*) buffer)[i]);
-
-  _spi->transfer(crc >> 8);
-  _spi->transfer(crc & 0xff);
-#else
-  for (uint8_t i = 0; i < bufferSize; i++)
-    _spi->transfer(((uint8_t*) buffer)[i]);
-#endif
-
   unselect();
 
   // no need to wait for transmit mode to be ready since its handled by the radio
@@ -604,61 +430,6 @@ void DavisRFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffe
   while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00); // wait for PacketSent
   setMode(RF69_MODE_STANDBY);
 }
-#endif
-
-#ifdef DAVIS_PKT_LEN_IS_8
-// only 8 bytes
-// internal function - interrupt gets called when a packet is received
-void DavisRFM69::interruptHandler() {
-  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
-  {
-    setMode(RF69_MODE_STANDBY);
-    RSSI = readRSSI(); // RSM moved from later
-    select();
-    _spi->transfer(REG_FIFO & 0x7F);
-    PAYLOADLEN = DAVIS_PACKET_LEN;
-    for (uint8_t i = 0; i < DAVIS_PACKET_LEN; i++) DATA[i] = _spi->transfer(0);
-    TARGETID = (DATA[0] & 0x0C) >> 2;
-    SENDERID = DATA[0] & 0x03;
-
-    char tbuf[100];
-    // snprintf(tbuf, 99, "IntH: RSSI:%d %d %d %x %x %x %x %x %x %x %x", RSSI, TARGETID, SENDERID, 
-    //                               DATA[0], DATA[1], DATA[2], DATA[3], DATA[4], DATA[5], DATA[6], DATA[7]);
-    // Serial.println(tbuf);
-
-#ifdef TARGET_AND_SENDER_ID_PART_OF_DATA_
-    if(!(TARGETID == _address && SENDERID < 10 && SENDERID >= 0 && SENDERID != _address && PAYLOADLEN == 8)) {
-      // snprintf(tbuf, 99, "IntH (Ignore): RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-      // Serial.println(tbuf);
-      PAYLOADLEN = 0;
-      unselect();
-      receiveBegin();
-      return;
-    }
-#endif
-
-    unselect();
-    setMode(RF69_MODE_RX);  // clears FIFO
-
-    uint16_t crc = compute_crc16(DATA, 6);
-    if (!((crc == (word(DATA[6], DATA[7]))) && (crc != 0))) {
-      if((int16_t)RSSI > (int16_t)-68) {
-        snprintf(tbuf, 99, "IntH (crc err): RSSI:%d CRC:%x DATA:%x %x %x %x %x %x %x %x", RSSI, crc, 
-          DATA[0], DATA[1], DATA[2], DATA[3], DATA[4], DATA[5], DATA[6], DATA[7]);
-        Serial.println(tbuf);
-      }
-      PAYLOADLEN = 0;
-      receiveBegin();
-      return;
-    }
-    DATALEN = DAVIS_PACKET_LEN;
-    // snprintf(tbuf, 99, "IntH: RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-    // Serial.println(tbuf);
-  }
-  // RSM Moved earlier RSSI = readRSSI();
-}
-
-#else
 
 // internal function - interrupt gets called when a packet is received
 void DavisRFM69::interruptHandler() {
@@ -669,35 +440,16 @@ void DavisRFM69::interruptHandler() {
     select();
     _spi->transfer(REG_FIFO & 0x7F);
     PAYLOADLEN = _spi->transfer(0);
-#ifdef DAVIS_RFM69_LIB_CONFIG_
-    PAYLOADLEN = PAYLOADLEN > 11 ? 11 : PAYLOADLEN; // precaution
-#else
     PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; // precaution
-#endif
     TARGETID = _spi->transfer(0);
     SENDERID = _spi->transfer(0);
     uint8_t CTLbyte = _spi->transfer(0);
     TARGETID |= (uint16_t(CTLbyte) & 0x0C) << 6; //10 bit address (most significant 2 bits stored in bits(2,3) of CTL byte
     SENDERID |= (uint16_t(CTLbyte) & 0x03) << 8; //10 bit address (most sifnigicant 2 bits stored in bits(0,1) of CTL byte
 
-    char tbuf[100];
-
-#ifdef DAVIS_RFM69_LIB_CONFIG_
-    if(!(TARGETID == _address && SENDERID < 10 && SENDERID > 0 && SENDERID != _address && PAYLOADLEN == 11)) {
-      // snprintf(tbuf, 99, "IntH (Ignore): RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-      // Serial.println(tbuf);
-      PAYLOADLEN = 0;
-      unselect();
-      receiveBegin();
-      return;
-    }
-#endif
-
     if(!(_spyMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in spy mode
        || PAYLOADLEN < 3) // address situation could receive packets that are malformed and don't fit this libraries extra fields
     {
-      // snprintf(tbuf, 99, "IntH (ignore): RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-      // Serial.println(tbuf);
       PAYLOADLEN = 0;
       unselect();
       receiveBegin();
@@ -714,25 +466,11 @@ void DavisRFM69::interruptHandler() {
 
     DATA[DATALEN] = 0; // add null at end of string // add null at end of string
     unselect();
-    setMode(RF69_MODE_RX);  // clears FIFO
+    setMode(RF69_MODE_RX);
     if (_pl != _powerLevel) setPowerLevel(_powerLevel); //set new _powerLevel if changed
-
-#ifdef DAVIS_RFM69_LIB_CONFIG_
-    uint16_t crc = compute_crc16(DATA, 6);
-    if (!((crc == (word(DATA[6], DATA[7]))) && (crc != 0))) {
-      snprintf(tbuf, 99, "IntH (crc err): RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-      Serial.println(tbuf);
-      PAYLOADLEN = 0;
-      receiveBegin();
-      return;
-    }
-#endif
-    // snprintf(tbuf, 99, "IntH: RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-    // Serial.println(tbuf);
   }
   // RSM Moved earlier RSSI = readRSSI();
 }
-#endif
 
 // internal function
 ISR_PREFIX void DavisRFM69::isr0() {
@@ -1632,90 +1370,4 @@ void DavisRFM69::readRSSITask(void *pvParameters)
   }
   vTaskDelete(NULL);
 #endif
-}
-
-/************************************************************
- * Davis CRC calculation
- * - from http://www.menie.org/georges/embedded/
- * - changed to not support othe start value as 0
- * @param[in] buf pointer to buffer 
- * @param[in] len legth of buffer 
- ************************************************************/
-uint16_t DavisRFM69::compute_crc16(volatile byte *buf, byte len){  
-  unsigned int crc = 0;
-  while (len--) {
-    int i;
-    crc ^= *(char *)buf++ << 8;
-    for( i = 0; i < 8; ++i ) {
-      if( crc & 0x8000 )
-        crc = (crc << 1) ^ 0x1021;
-      else
-        crc = crc << 1;
-    }
-  }
-  return crc;
-}
-
-/************************************************************
- * get CRC16
- * @return CRC value for packet in receive buffer 
- ************************************************************/
-uint16_t DavisRFM69::crc16(void) {
-  // First 6 Bate 
-  // unsigned int crc;
-  // crc = compute_crc16(DATA 6);
-  return compute_crc16(DATA, 6);
-}
-
-/************************************************************
- * Set Channel 
- * - and activate receiver
- ************************************************************/
-void DavisRFM69::setChannel(byte channel) {
-  _channel = channel;
-  if (_channel > DAVIS_FREQ_TABLE_LENGTH - 1) _channel = 0;
-  writeReg(REG_FRFMSB, pgm_read_byte(&FRF[_channel][0]));
-  writeReg(REG_FRFMID, pgm_read_byte(&FRF[_channel][1]));
-  writeReg(REG_FRFLSB, pgm_read_byte(&FRF[_channel][2]));
-  receiveBegin();
-}
-
-
-/************************************************************
- * Hop to next Channel and activate receiver 
- ************************************************************/
-void DavisRFM69::hop(void) {
-  setChannel(++_channel);
-}
-
-
-/************************************************************
- * Get data at index
- * @param[in] index
- * @return    data at index
- ************************************************************/
-byte DavisRFM69::data(byte index) {
-  byte v;
-  if ((index < 0) || (index > 7)) {
-    // no valid index
-    v = 0xff;
-  } else {
-    v = DATA[index];
-  }
-  return(v);
-}
-
-/************************************************************
- * Reverse bits in a byte
- * - The data bytes come over the air from the ISS have 
- *   least significant bit first. 
- * - from http://www.ocf.berkeley.edu/~wwu/cgi-bin/yabb/YaBB.cgi?board=riddles_cs;action=display;num=1103355188
- * @param[in] b value to be reversed
- * @return    reversed value
- ************************************************************/
-byte DavisRFM69::reverseBits(byte b) {
-  b = ((b & 0b11110000) >>4 ) | ((b & 0b00001111) << 4);
-  b = ((b & 0b11001100) >>2 ) | ((b & 0b00110011) << 2);
-  b = ((b & 0b10101010) >>1 ) | ((b & 0b01010101) << 1);
-  return(b);
 }

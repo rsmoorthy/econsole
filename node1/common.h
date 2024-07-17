@@ -7,7 +7,7 @@
 #include "prefs.h"
 
 void consoleSendRcv(void);
-void contSend(void);
+void contSend(bool ack);
 void rxvPkt(void);
 void mydelay(int);
 
