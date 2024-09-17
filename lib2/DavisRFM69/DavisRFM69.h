@@ -234,6 +234,7 @@ class DavisRFM69 {
     virtual void setHighPower(bool _isRFM69HW_HCW=true); // has to be called after initialize() for RFM69 HW/HCW
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level
     virtual int8_t setPowerDBm(int8_t dBm); // reduce/increase transmit power level, in dBm
+    void restartAFCFEI();
 
     virtual uint8_t getPowerLevel(); // get powerLevel	
     void sleep();

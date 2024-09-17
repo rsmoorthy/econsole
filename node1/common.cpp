@@ -70,7 +70,14 @@ void consoleSendRcv()
       cont_interval = 0;
       cont_last_sent = 0;
     }
-    if(input == 'r') { // reset all statistics
+    else if(input == 'I') { // print ISS data
+      printIssData();
+    }
+    else if(input == 'R') { // read all registers
+      radio.readAllRegs();
+      Serial.println("Read all regs");
+    }
+    else if(input == 'r') { // reset all statistics
       cnter = exp_cnter = 0;
       snd_counter = rxvd_counter = err_counter = missed_counter = 0;
       hopCount = 0; chLastRxTime = 0;
@@ -152,10 +159,11 @@ void consoleSendRcv()
       Serial.println("ACK sent");
     }
 
+    parseIssData();
     // hop channel
     chLastRxTime = millis();
-    radio.hop();
-    hopCount = 1;
+    // radio.hop();
+    // hopCount = 1;
   }
 }
 
@@ -403,6 +411,7 @@ void printIssData(void)
   Serial.print("Goldcap Charge Status: ");
   Serial.print(g_goldcapChargeStatus);
   Serial.println(" [V]");
+  Serial.print("Rain rate: ");
   Serial.print(g_rainRate);
   Serial.println(" [mm/h]");
   Serial.print("Solar Radiation: ");

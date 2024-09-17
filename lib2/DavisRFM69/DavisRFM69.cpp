@@ -133,16 +133,16 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
     // /* 0x04 */ { REG_BITRATELSB, RF_BITRATELSB_55555},
 
     // U7
-    // /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_4800}, // Davis uses a deviation of 4.8 kHz
-    // /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_4800},
-    /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_50000}, // default: 5KHz, (FDEV + BitRate / 2 <= 500KHz)
-    /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_50000},
-    // /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_30000}, // Davis uses a deviation of 4.8 kHz
-    // /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_30000},
+    /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_4800}, // Davis uses a deviation of 4.8 kHz
+    /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_4800},
+    // /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_50000}, // default: 5KHz, (FDEV + BitRate / 2 <= 500KHz)
+    // /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_50000},
+    // /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_20000}, // Davis uses a deviation of 4.8 kHz
+    // /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_20000},
 
-    /* 0x07 */ { REG_FRFMSB, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFMSB_315 : (freqBand==RF69_433MHZ ? RF_FRFMSB_433 : (freqBand==RF69_868MHZ ? RF_FRFMSB_868 : RF_FRFMSB_915))) },
-    /* 0x08 */ { REG_FRFMID, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFMID_315 : (freqBand==RF69_433MHZ ? RF_FRFMID_433 : (freqBand==RF69_868MHZ ? RF_FRFMID_868 : RF_FRFMID_915))) },
-    /* 0x09 */ { REG_FRFLSB, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFLSB_315 : (freqBand==RF69_433MHZ ? RF_FRFLSB_433 : (freqBand==RF69_868MHZ ? RF_FRFLSB_868 : RF_FRFLSB_915))) },
+    // /* 0x07 */ { REG_FRFMSB, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFMSB_315 : (freqBand==RF69_433MHZ ? RF_FRFMSB_433 : (freqBand==RF69_868MHZ ? RF_FRFMSB_868 : RF_FRFMSB_915))) },
+    // /* 0x08 */ { REG_FRFMID, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFMID_315 : (freqBand==RF69_433MHZ ? RF_FRFMID_433 : (freqBand==RF69_868MHZ ? RF_FRFMID_868 : RF_FRFMID_915))) },
+    // /* 0x09 */ { REG_FRFLSB, (uint8_t) (freqBand==RF69_315MHZ ? RF_FRFLSB_315 : (freqBand==RF69_433MHZ ? RF_FRFLSB_433 : (freqBand==RF69_868MHZ ? RF_FRFLSB_868 : RF_FRFLSB_915))) },
 
     // looks like PA1 and PA2 are not implemented on RFM69W/CW, hence the max output power is 13dBm
     // +17dBm and +20dBm are possible on RFM69HW
@@ -153,15 +153,15 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
     ///* 0x13 */ { REG_OCP, RF_OCP_ON | RF_OCP_TRIM_95 }, // over current protection (default is 95mA)
 
     // U12
-    // /* 0x18 */ { REG_LNA, RF_LNA_ZIN_50 | RF_LNA_GAINSELECT_AUTO }, // Not sure which is correct!
+    /* 0x18 */ { REG_LNA, RF_LNA_ZIN_50 | RF_LNA_GAINSELECT_AUTO }, // Not sure which is correct!
 
     // U2
     // RXBW defaults are { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_5} (RxBw: 10.4KHz)
-    /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, // (BitRate < 2 * RxBw)
+    // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, // (BitRate < 2 * RxBw)
     // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_3 }, // Use 25 kHz BW (BitRate < 2 * RxBw)
     // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_3 }, // Use 25 kHz BW (BitRate < 2 * RxBw)
     //for BR-19200: /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_3 },
-    // /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_4 }, // dcbo - 25.0
+    /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_4 }, // dcbo - 25.0
 
     /* 0x1B - 0x1D These registers are for OOK.  Not used */
 
@@ -175,7 +175,7 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
     /* 0x26 */ { REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF }, // DIO5 ClkOut disable for power saving
     // 0x27      RegIRQFlags1
     /* 0x28 */ { REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN }, // writing to this bit ensures that the FIFO & status flags are reset
-    /* 0x29 */ { REG_RSSITHRESH, 220 }, // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
+    /* 0x29 */ { REG_RSSITHRESH, 0xA0 }, // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
     // 0x2a      RegRxTimeout1
     // 0x2b      RegRxTimeout2
     // 0x2c      RegPreambleMsb - use zero default */
@@ -185,7 +185,7 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
     // /* 0x2D */ { REG_PREAMBLELSB, RF_PREAMBLESIZE_LSB_VALUE }, // default 3 preamble bytes 0xAAAAAA
 
     // /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0 },
-    /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0 },
+    /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_2 },
     /* 0x2f */ { REG_SYNCVALUE1, 0xcb }, // 0xcb Davis ISS first sync byte. http://madscientistlabs.blogspot.ca/2012/03/first-you-get-sugar.html
     /* 0x30 */ { REG_SYNCVALUE2, 0x89 }, // 0x89 Davis ISS second sync byte.
     //* 0x31 */ { REG_SYNCVALUE3, 0xAA },
@@ -214,17 +214,17 @@ bool DavisRFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID
     /* 0x3e - 0x4d  AES Key not used in this implementation */
 
     // U13
-    // /* 0x0B */ { REG_AFCCTRL, RF_AFCCTRL_LOWBETA_OFF },
+    /* 0x0B */ { REG_AFCCTRL, RF_AFCCTRL_LOWBETA_OFF },
 
     // U4 
     // /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_2 }, // Use double the bandwidth during AFC as reception
     // /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, // Use double the bandwidth during AFC as reception
-    // /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_3 }, // Use double -dcbo 50.0
+    /* 0x1A */ { REG_AFCBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_20 | RF_RXBW_EXP_3 }, // Use double -dcbo 50.0
     // U5
-    // /* 0x1E */ { REG_AFCFEI, RF_AFCFEI_AFCAUTOCLEAR_ON | RF_AFCFEI_AFCAUTO_ON },
+    /* 0x1E */ { REG_AFCFEI, RF_AFCFEI_AFCAUTOCLEAR_ON | RF_AFCFEI_AFCAUTO_ON },
     
     /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0
-    // /* 0x71 */ { REG_TESTAFC, 0 }, // AFC Offset for low mod index systems
+    /* 0x71 */ { REG_TESTAFC, 0 }, // AFC Offset for low mod index systems
     {255, 0}
   };
 #endif
@@ -541,10 +541,10 @@ void DavisRFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffe
   _spi->transfer(REG_FIFO | 0x80);
 
   for (uint8_t i = 0; i < bufferSize; i++)
-    _spi->transfer(tbuf[i]);
+    _spi->transfer(reverseBits(tbuf[i]));
 
-  _spi->transfer(crc >> 8);
-  _spi->transfer(crc & 0xff);
+  _spi->transfer(reverseBits(crc >> 8));
+  _spi->transfer(reverseBits(crc & 0xff));
   unselect();
 
   // no need to wait for transmit mode to be ready since its handled by the radio
@@ -617,32 +617,35 @@ void DavisRFM69::interruptHandler() {
     select();
     _spi->transfer(REG_FIFO & 0x7F);
     PAYLOADLEN = DAVIS_PACKET_LEN;
-    for (uint8_t i = 0; i < DAVIS_PACKET_LEN; i++) DATA[i] = _spi->transfer(0);
+    for (uint8_t i = 0; i < DAVIS_PACKET_LEN; i++) DATA[i] = reverseBits(_spi->transfer(0));
     TARGETID = (DATA[0] & 0x0C) >> 2;
     SENDERID = DATA[0] & 0x03;
+    unselect();
+    setMode(RF69_MODE_RX);  // clears FIFO
+
 
     char tbuf[100];
-    // snprintf(tbuf, 99, "IntH: RSSI:%d %d %d %x %x %x %x %x %x %x %x", RSSI, TARGETID, SENDERID, 
-    //                               DATA[0], DATA[1], DATA[2], DATA[3], DATA[4], DATA[5], DATA[6], DATA[7]);
-    // Serial.println(tbuf);
+    if((int16_t) RSSI > -99) {
+      snprintf(tbuf, 99, "IntH (all): RSSI:%d -> %x %x %x %x %x %x %x %x", RSSI, 
+                                   DATA[0], DATA[1], DATA[2], DATA[3], DATA[4], DATA[5], DATA[6], DATA[7]);
+      Serial.println(tbuf);
+    }
 
+/*
 #ifdef TARGET_AND_SENDER_ID_PART_OF_DATA_
     if(!(TARGETID == _address && SENDERID < 10 && SENDERID >= 0 && SENDERID != _address && PAYLOADLEN == 8)) {
       // snprintf(tbuf, 99, "IntH (Ignore): RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
       // Serial.println(tbuf);
       PAYLOADLEN = 0;
-      unselect();
       receiveBegin();
       return;
     }
 #endif
-
-    unselect();
-    setMode(RF69_MODE_RX);  // clears FIFO
+*/
 
     uint16_t crc = compute_crc16(DATA, 6);
     if (!((crc == (word(DATA[6], DATA[7]))) && (crc != 0))) {
-      if((int16_t)RSSI > (int16_t)-68) {
+      if((int16_t) RSSI > -99) {
         snprintf(tbuf, 99, "IntH (crc err): RSSI:%d CRC:%x DATA:%x %x %x %x %x %x %x %x", RSSI, crc, 
           DATA[0], DATA[1], DATA[2], DATA[3], DATA[4], DATA[5], DATA[6], DATA[7]);
         Serial.println(tbuf);
@@ -652,8 +655,9 @@ void DavisRFM69::interruptHandler() {
       return;
     }
     DATALEN = DAVIS_PACKET_LEN;
-    // snprintf(tbuf, 99, "IntH: RSSI:%d PLEN:%d TID:%d SID:%D Ctl:%d", RSSI, PAYLOADLEN, TARGETID, SENDERID, CTLbyte);
-    // Serial.println(tbuf);
+    snprintf(tbuf, 99, "IntH (FINAL!!!!): RSSI:%d crc:%x Data:%x %x %x %x %x %x %x %x", RSSI, crc, 
+        DATA[0], DATA[1], DATA[2], DATA[3], DATA[4], DATA[5], DATA[6], DATA[7]);
+    Serial.println(tbuf);
   }
   // RSM Moved earlier RSSI = readRSSI();
 }
@@ -762,6 +766,7 @@ void DavisRFM69::receiveBegin() {
   if (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)
     writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01); // set DIO0 to "PAYLOADREADY" in receive mode
+  restartAFCFEI();
   setMode(RF69_MODE_RX);
 }
 
@@ -1718,4 +1723,13 @@ byte DavisRFM69::reverseBits(byte b) {
   b = ((b & 0b11001100) >>2 ) | ((b & 0b00110011) << 2);
   b = ((b & 0b10101010) >>1 ) | ((b & 0b01010101) << 1);
   return(b);
+}
+
+void DavisRFM69::restartAFCFEI(void) {
+  byte afcfei = readReg(REG_AFCFEI);
+  // Serial.print("AFCFEI Reg is "); Serial.print(afcfei, HEX);
+  afcfei = afcfei | RF_AFCFEI_FEI_START;
+  writeReg(REG_AFCFEI, afcfei);
+  // Serial.print(" changed to "); Serial.print(afcfei, HEX);
+  // Serial.println("");
 }

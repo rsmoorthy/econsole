@@ -12,5 +12,7 @@ void rxvPkt(void);
 void mydelay(int);
 void sendPkt(void);
 void hopTimer(void);
+void parseIssData(void);
+void printIssData(void);
 
 #endif

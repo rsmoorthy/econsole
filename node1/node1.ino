@@ -57,9 +57,9 @@ void setup()
   // Initialize the RFM69HCW:
   // radio.setCS(10);  //uncomment this if using Pro Micro
   radio.initialize(FREQUENCY, MYNODEID, NETWORKID);
+  radio.setChannel(0);
   radio.setHighPower(); // Always use this for RFM69HCW
   // Serial.print("RFM69 chip version: "); Serial.println(radio.chipVersion, HEX);
-  radio.setChannel(0);
 
   // Turn on encryption if desired:
 
